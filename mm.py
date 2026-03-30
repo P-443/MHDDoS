@@ -5,11 +5,11 @@ import subprocess
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 # Telegram Bot Token
-TOKEN = "7684261013:AAEoDPXTmwA-EuSg-ClIOpR-KVlt96J_Hg0"
+TOKEN = "7104470318:AAEZoZKujvHvgj83l0inf6C09HMlHQpZ-44"
 bot = telebot.TeleBot(TOKEN)
 
 # Allowed Admins to use specific commands
-ALLOWED_USERS = [1480248962]  # Add Admin IDs here
+ALLOWED_USERS = [5705487207]  # Add Admin IDs here
 
 # VIP Users and their remaining days
 vip_users = {}
